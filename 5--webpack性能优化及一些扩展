@@ -1,0 +1,48 @@
+5.1--Library的打包（自定义库的打包）
+const path = require('path');
+module.exports = {
+  mode: 'production',
+  entry: './src/index.js',
+  output: {
+     path: path.resolve(_dirname, 'dist'),
+     filename: 'library.js',
+     library: 'library', // 会在全局变量里面增加一个 library 的变量， 可以通过 script 标签引入库打包后的文件，然后通过 library 访问库里面的属性或方法
+     libraryTarget: 'mud' // 是指全局变量挂载在哪里，如果是 mud 就和 library 的配置没很大关系，就是支持 Es module 或者 CommonJs 或者 AMD 等形式的引入，如果设置成 this ，则代表 library 设置的变量挂载在了 this 上，或者可以设置成 window ， 在 node 环境中，也可以设置成 global, 但是就不能支持Es module 或者 CommonJs 或者 AMD 等形式的引入啦，因为不是 mud 啦
+  }
+}
+
+如果业务代码中引入了一个库 jquery， 自定义库中也引入了该库 jquery，为了防止重复打包，可以在自定义库中配置：
+externals: {
+   jquery: 'jQuery' // 这样配置，在其他项目中使用该自定义库时，引入 jquery 的名称，必须是 jQuery
+}
+这样在自定义库打包时就不会打包 jquery， 如果要在其他项目中正常使用自定义库， 需要在业务代码中引入 jquery 库
+
+打开 npm 官网，注册一个账号，然后在命令行中执行 npm adduser 回车，然后输入用户名和密码， 再执行 
+npm publish 把自己的库发布到 npm 上， 别人要是想使用这个库， 直接 npm install library 就可以啦，
+每个库的名字在 npm 上都是不相同的
+
+
+
+5.2--Progressive Web Application（PWA）
+正常情况下，打包生成的dist文件夹，需要放到一个服务器上才能运行，假如本地起了一个 http-server 服务，该服务启动时，项目可以正常访问，但是关闭该服务，项目就无法访问啦。
+如果要使服务关闭后，项目也可以访问，就需要用到 PWA 技术
+需要安装一个插件 workbox-webpack-plugin
+然后在 webpack.config.js 中配置：
+const WorkboxWebpackPlugin = require('workbox-webpack-plugin');
+plugins: [
+  new WorkboxWebpackPlugin.CenerateSw({
+    clientsClaim: true,
+    skipWaiting: true
+  })
+]
+然后，在业务代码中
+if ('serviceWorker' in navigator) {
+   window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(registration => {
+           console.log('service-worker regifted');
+        }).catch(error => {
+           console.log('service-worker error');
+        })
+    })
+}
