@@ -1,0 +1,147 @@
+4.1--Tree Shaking
+Tree Shaking 只支持ES module模式的引入
+Tree Shaking 在引入模块的时候，不引入所有模块，只引入需要的模块
+在 development 模式下，需要在 webpack.config.js 中增加配置：
+optimization: {
+ usedExports: true
+}
+还需要在 package.json 中增加配置："sideEffects": false,
+"sideEffects" 中可以配置一下不希望进行 Tree Shaking 的文件
+"sideEffects": ["*.css"]
+虽然在 development 模式下配置完成，还是会被打包进 main.js 文件，这是为了便于调试，
+但是在 production 模式下，就只会打包要使用的模块
+
+
+4.2--development 和 production 模式下的区分打包
+development 模式下可以对 sourceMap 是非常全的，可以快速定位问题，打包后的 js 文件没有进行压缩
+development 和 production 模式的配置可以拆开，webpack.dev.js 和 webpack.prod.js ,大部分配置是相同的，
+可以提取出来一个 webpack.common.js ,再通过插件 webpack-merge 进行合并
+
+
+4.3/4.4--webpack 和 code splitting（代码分割）之间的关系
+浏览器中可以并行的加载文件
+第一种方式：
+当引入的库（例如 lodash ）和业务逻辑代码打包生成一个 main.js 文件时
+首次访问页面时，加载 main.js ,打包文件会很大，加载时间会长，当修改了业务逻辑代码，重新访问我们的页面时，
+又要重新加载 main.js
+第二种方式：（手动）
+把引入的库和业务逻辑代码分别打包进不同的文件，如 lodash.js 和 main.js
+当页面业务逻辑代码被修改时，只需要加载 main.js
+code splitting 可以提升性能
+也可以通过 webpack 配置
+optimization: {
+ splitChunks: {
+   chunks: 'all'
+ }
+}
+
+总结：
+代码分割，和 webpack 无关
+Webpack 中实现代码分割，两种方式
+1.同步代码：只需要在 webpack.config.js 中做 optimization 的配置即可
+2.异步代码（import）: 异步代码，无需做任何配置，会自动进行代码分割，放置到新的文件中
+
+
+4.5/4.6--SplitChunksPlugin 配置参数详解
+optimization: {
+    splitChunks: {
+      chunks: 'async', //默认 async，只支持异步引入进行代码分割， all 代表既支持同步也支持异步，inital 代表只支持同步
+      minSize: 30000, //要生成的块的最小大小，如果一个引入本身大小没有到这个值，则不进行代码分割，依赖包超过30000bit将被单独打包
+      maxSize: 0, //假如设置值是50000bit，那么 webpack 将尝试将大于maxSize字节的块拆分成更小的部分
+      minChunks: 1, // 当一个模块被使用了至少 minChunks 次的时候，才对改模块进行代码分割
+      maxAsyncRequests: 5, // 按需加载时的最大并行请求数，同时加载的模块数最多是5个
+      maxInitialRequests: 3, // 入口点的最大并行请求数，也就是首页（入口页进行加载的时候）
+      automaticNameDelimiter: '~', //没有定义 filename 时，默认生成的名称的连接字符
+      automaticNameMaxLength: 30,
+      name: true, // 支持在 cacheGroups 中的 vendors 或者 default 中修改名称
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/, // 匹配，控制此缓存组选择哪些模块
+          priority: -10, // 优先级
+          filename: 'vendor.js' // 打包生成的chunk名称
+        },
+        default: {
+          minChunks: 2,
+          priority: -20, // 一个模块可以属于多个缓存组。优化将优先选择具有更高 priority. 默认组具有负优先级以允许自定义组具有更高的优先级（默认值为0自定义组）
+          reuseExistingChunk: true // 如果当前块包含已经从主包中分离出来的模块，它将被重用，而不是生成一个新的。
+        }
+      }
+    }
+  }
+
+
+4.7--Lazy Loading 懒加载，chunk 是什么？
+Lazy Loading 是指 import 语法可以在项目执行的时候需要什么模块再加载什么模块
+chunk 块
+
+
+4.8--打包分析，preloading，prefetching
+打开 http://github.com/webpack/analyse
+"script": {
+  "dev": "webpack --profile --json > stats.json --config webpack.config.js"
+}
+然后在打包分析工具中打开 stats.json
+打包分析工具地址：http://webpack.github.com/analysis
+在控制台快捷键 command+shift+p，然后搜索 coverage 查看
+import(/* webpackPrefetch: true */ './click.js').then(({default: func}) => {
+   func();
+})
+prefetching 会等到核心代码加载完，在网络带宽空闲的时候，再载入需要的代码
+preloading 是和核心代码一起加载的
+
+
+4.9--css文件的代码分割
+chunkFilename:入口文件间接引入的模块打包的时候就会走 chunkFilename
+miniCssExtractPlugin --在 webpack4 中适合生产环境，不适合开发环境，因为不支持 HMR（热更新）
+在生产环境中使用的时候，就不能使用 style-loader 去挂载，而要使用 miniCssExtractPlugin 提供的 loader，也就是
+MiniCssExtractPlugin.loader
+这里还需要注意
+optimization: {
+ usedExports: true
+}
+配置
+还需要把 package.json 中的配置改成忽略 css 的
+"sideEffects" 中可以配置一下不希望进行 Tree Shaking 的文件
+"sideEffects": ["*.css"]
+optimizeCssAssetsPlugin 插件可以压缩打包后的 css 代码
+
+
+4.10--webpack与浏览器缓存（Caching）
+通过 webpack 配置 contenthash 暂位符，对浏览器合理的做缓存，在内容进行改变的时候，浏览器才需要重新加载修改后的文件，可以通过
+contenthash 实现，在 output 中配置：
+output：{
+  filename: '[name].[contenthash].js',
+  chunkFilename: '[name].[contenthash].js'
+}
+业务逻辑和引入的库之前是有关联的，这些关联的内置代码叫做 manifest
+对于一些老版本，可能并没有修改代码，但是业务逻辑代码和库之间的关联关系还是会发生变化，也就是 manifest，需要增加配置：
+optimization: {
+ runtimeChunk: {
+   name: 'runtime'
+  }
+}
+这个配置可以把 manifest 抽出来单独打包
+
+
+4.11--shimming(垫片）
+shim 预置全局变量:
+使用 ProvidePlugin 后，能够在 webpack 编译的每个模块中，通过访问一个变量来获取一个 package。如果 webpack 看到模块中用到这个变量，
+它将在最终 bundle 中引入给定的 package，如全局配置 $ 获取 jquery
+const webpack = require('webpack');
+plugins: [
+    new webpack.ProvidePlugin({
+      $: 'jquery'
+    })
+  ]
+细粒度 shim:
+imports-loader 插件，可以把 js 模块里面的 this 默认指向 window
+loader: 'imports-loader?this=>window'
+
+
+4.12--环境变量的使用
+可以配置环境变量 env 来控制生产环境和开发环境的不同配置
+在 package.json 中设置 env 的值
+"script": {
+  "build": "webpack --env.production --config webpack.config.js"
+}
+然后在 webpack.config.js 中获取 env 的值来判断是生产环境还是开发环境
