@@ -46,3 +46,107 @@ if ('serviceWorker' in navigator) {
         })
     })
 }
+
+
+5.3--TypeScript的打包配置
+安装 ts，如果要使 webpack 能识别 .tsx 文件，需要配置 loader，这里用到了 ts-loader，也有其他可以支持的文件
+如果要打包 ts 文件，还需要配置 tsconfig.json 文件，以下是一些常用配置
+{
+  "compilerOptions": {
+    "outDir": "./dist", // 打包到哪个文件夹下，不配置也行，因为webpack.config.js 中已经配置过 output
+    "module": "es6", // 在 ts 中引入 module 的方式是 ES module
+    "target": "es5", // 打包生成的文件类型
+    "allowJs": true, // 允许在 ts 语法中引入 js 模块
+  }
+}
+ts 文件中引入外部库（一般库都是用 js 语法）的时候， 需要安装这个库类型的说明， 一般是 @type/库名
+
+
+
+5.4--使用 WebpackDevServer 实现请求转发
+devServer: {
+  proxy: {  // 只在开发环境中生效
+     '/react/api' : {
+          target: 'http://www.dell-lee.com' // 目标域
+          secure: false, // 可以对 https 生效
+          pathRewrite: {
+            'header.json': 'demo.json' // 如果是请求 header.json 就转发到 demo.json ,请求地址不变
+          }
+          changeOrigin: true, // 可以改变请求里的 origin 的选项， 使代理可以支持更多的访问
+          headers: {
+             // 可以自定义一些请求头的配置
+          }
+     }
+  }
+}
+
+
+
+5.5--WebpackDevServer 解决单页面应用路由问题
+devServer: { 
+  historyApiFallback: true // 任何的404响应都可能被替代为 index.html , 这就使得在浏览器中切换路由时，每次都会请求到 index.html , 然后加载 index.js, 这样就能使路由正常加载。
+// 只在开发环境中有效， 生产环境中需要后端对 nginx 等做一些配置
+}
+
+
+
+5.6/5.7--Eslint 在 webpack 中的配置
+安装eslint eslint-loader
+devServer: { 
+  Overlay: true // 可以在页面上弹层提示错误 当出现编译器错误或警告时，在浏览器中显示全屏覆盖层
+}
+module: {
+  rules: [{
+     test: /\.js$/,
+     exclude: /node_modules/, // 除了 node_modules 里面的js文件
+     use: [{
+        loader: 'eslint-loader', // eslint-loader 正常情况下要配置在后面，先执行
+        options: {
+           fix: true // 可以修复一些简单的问题
+        },
+        force: 'pre', // 即使 aslant-loader写在上面，也要强制先执行
+     },'babel-loader']
+  }]
+}
+一般在公司项目的开发中，不会在 webpack 中配置 eslint-loader ，因为会降低打包的速度
+
+
+
+5.8--提升 webpack 打包技术的方法
+1.跟上技术的迭代（Node，Npm，Yarn），尽可能使用较新的版本
+2.在尽可能少的模块上应用 Loader（合理的使用 include 或者 exclude）
+3.Plugin 尽可能精简并确保可靠（插件要合理的使用，尽量使用官方推荐的）
+4.resolve 参数合理配置（不合理的配置会使打包变慢）
+  resolve: {
+    extensions: [".js", ".jsx"], // 当在文件中引入其他文件不加后缀时，会按照这个顺序验证并查找文件
+    mainFiles:["index", "child"], // 当引入路径不加子路径时，会按照这个顺序验证并查找文件
+    alias: { // 配置别名
+      vue$: "vue/dist/vue.js",
+      "@": resolve("src")
+    }
+  }
+5.使用 DllPlugin 提高打包速度
+  如果项目中引入了第三方模块，那么每次打包的时候 webpack 都会去 node_modules 中找对应的模块进行打包
+  目标：使第三方模块只打包一次
+  新建一个配置文件 webpack.dll.js, 对需要用到的第三方模块单独进行打包
+  单独对第三方的文件打包，然后通过 library 设置一个全部变量，暴露出去，
+  通过插件 webpack.DllPlugin 对暴露出去的文件进行分析，生成一个分析文件
+   plugins: [
+    new webpack.DllPlugin({
+      name:'[name]',
+      path: path.resolve(_dirname, '../dll/[name].manifest.json')
+    })
+  ]
+  然后在通用配置文件中，也就是 webpack.config.js 中配置
+  new webpack.DllReferencePlugin({
+    manifest: path.resolve(_dirname, '../dll/[name].manifest.json')
+  })
+  把打包生成的文件挂载在 index.html 上
+  使用插件 add-asset-html-webpack-plugin 在 index.html 增加添加静态资源
+  const AddAssetHtmlWebpackPlugin = require('add-asset-html-webpack-plugin');
+  plugins: [
+    new AddAssetHtmlWebpackPlugin({
+      filepath: path.resolve(_dirname, '../dll/vendors.dll.js')
+    })
+  ]
+
