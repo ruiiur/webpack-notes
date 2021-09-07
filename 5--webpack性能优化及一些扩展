@@ -130,7 +130,22 @@ module: {
   目标：使第三方模块只打包一次
   新建一个配置文件 webpack.dll.js, 对需要用到的第三方模块单独进行打包
   单独对第三方的文件打包，然后通过 library 设置一个全部变量，暴露出去，
-  通过插件 webpack.DllPlugin 对暴露出去的文件进行分析，生成一个分析文件
+  output: {
+   filename: '[name].dll.js',
+   path: path.resolve(__dirname, '../dll'),
+   library: '[name]'
+  }
+  这种方法需要 <script> 标签引入，
+  如何引入？如何把打包生成的文件挂载在 index.html 上？
+  使用插件 add-asset-html-webpack-plugin 在 index.html 增加添加静态资源
+  const AddAssetHtmlWebpackPlugin = require('add-asset-html-webpack-plugin');
+  plugins: [
+    new AddAssetHtmlWebpackPlugin({
+      filepath: path.resolve(_dirname, '../dll/vendors.dll.js')
+    })
+  ]
+  如何才能使在  webpack.dll.js 配置文件中打包的第三方模块不被再次打包？
+  通过在  webpack.dll.js 文件中配置插件 webpack.DllPlugin 对暴露出去的文件进行分析，生成一个映射文件
    plugins: [
     new webpack.DllPlugin({
       name:'[name]',
@@ -141,12 +156,82 @@ module: {
   new webpack.DllReferencePlugin({
     manifest: path.resolve(_dirname, '../dll/[name].manifest.json')
   })
-  把打包生成的文件挂载在 index.html 上
-  使用插件 add-asset-html-webpack-plugin 在 index.html 增加添加静态资源
-  const AddAssetHtmlWebpackPlugin = require('add-asset-html-webpack-plugin');
-  plugins: [
-    new AddAssetHtmlWebpackPlugin({
-      filepath: path.resolve(_dirname, '../dll/vendors.dll.js')
-    })
-  ]
+  这个插件会结合配置文件，结合生成的 vendors.dll.js 文件，结合引入的第三方模块进行分析，如果引入的第三方模块已经在 vendors.dll.js 中有啦，就不用再去 node_modules 中找对应的模块进行打包啦。
+  当然，也可以把第三方模块打包进不同的文件中,为了在 plugin 中配置的简洁可复用，可以通过 fs 实现
+  const fs = require('fs') // 引入 node 模块 fs
+  const files = fs.readdirSync(path.resolve(__dirname, '../dll');
+  files.forEach(file => {
+     if(/.*\.dll.js/.test(file)) {
+         plugins.push(new AddAssetHtmlWebpackPlugin({
+            filepath: path.resolve(__dirname, '../dll', file)
+         }))
+     }
+     if(/.*\.mainfest.json/.test(file)) {
+         plugins.push(new webpack.DllReferencePlugin({
+           manifest: path.resolve(__dirname, '../dll', file)
+         }))
+     }
+  })
+ 
+6.控制包文件的大小
+7.thread-loader， parallel-webpack， happypack多进程打包
+8.合理使用 sourceMap（sourceMap 越详细打包过程越慢， 所以要结婚项目的情况合理使用）
+9.结合 stats 分析打包结果
+10. 开发环境内存编译 （开发环境 webpackdevserver 打包不会生成 dist 目录， 它会把生成的文件放到内存中， 内存的读取肯定比硬盘快
+11.开发环境无用插件剔除
 
+
+
+
+5.9--多页面打包配置
+多页面就会有多入口：
+entry: {
+  main: './src/inex.js',
+  list: './src/list.js'
+}
+原理就是在 plugin 里面配置了多个 HtmlWebpackPlugin:
+ plugins: [
+  new HtmlWebpackPlugin({
+    template: 'src/index.html', // 模版页
+    filename: 'index.html',
+    chunks: ['runtime', 'vendors', 'main'] // 引入生成的需要的模块
+  })
+  new webpack.DllPlugin({
+    template: 'src/index.html', // 模版页
+    filename:'list.html',
+    chunks: ['runtime', 'vendors', 'main']
+  })
+]
+当需要用到很多个 HtmlWebpackPlugin 时，我们可以对 plugin 进行优化，封装一个方法：
+const makePlugins = (configs) => {
+  const plugins = [
+    new CleanWebapckPlugin(['dist'], {
+      root: path.resolve(__dirname, '../')
+    })
+  ];
+  Object.keys(configs.entry).forEach(item => {
+    plugins.push(
+      new HtmlWebpackPlugin({
+        template: 'src/index.html',
+        filename: `${item}.html`,
+        chunks: ['runtime', 'vendors', item]
+      })
+    )
+  })
+  const files = fs.readdirSync(path.resolve(__dirname, '../dll');
+  files.forEach(file => {
+     if(/.*\.dll.js/.test(file)) {
+         plugins.push(new AddAssetHtmlWebpackPlugin({
+            filepath: path.resolve(__dirname, '../dll', file)
+         }))
+     }
+     if(/.*\.mainfest.json/.test(file)) {
+         plugins.push(new webpack.DllReferencePlugin({
+           manifest: path.resolve(__dirname, '../dll', file)
+         }))
+     }
+  })
+  return plugins;
+}
+
+config.plugins = makePlugins(config);
