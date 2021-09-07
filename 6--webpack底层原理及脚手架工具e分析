@@ -1,0 +1,75 @@
+-----Loader 和 Plugin 的区别：
+     Loader 是帮助我们去处理模块
+     Plugin 在我们打包的过程中，某一时刻想做某些事情
+6.1--如何编写一个loader
+在项目中，如果需要对源代码进行一些包装，可以考虑使用 loader
+编写一个loader时不能使用箭头函数, 因为 webpack 在调用 loader 的时候， 会把 this 进行变更，变更之后，就可以在 loader 里面使用 this 的一些方法。
+module.exports = function (source) {
+  // source 代表 loader 要处理的文件源代码，最后 return 出去的是处理好的文件代码
+  // this.query 代表 配置 loader 时 options 中配置的内容
+  return source.replace('dell', this.query.name);
+}
+如果不用 this.query ， 也可以使用 loader-utils 模块获取；
+const loaderUtils = require('loader-utils');
+module.exports = function (source) {
+  // source 代表 loader 要处理的文件源代码，最后 return 出去的是处理好的文件代码
+  const options = loaderUtils.getOptions(this);
+  return source.replace('dell', options.name);
+}
+如果不仅想 return 处理好的代码，还想 return sourceMap，可以通过 this.callback，如果要定义一个异步的 loader，
+可以使用 this.async()
+module.exports = function (source) {
+  // source 代表 loader 要处理的文件源代码，最后 return 出去的是处理好的文件代码
+  const options = loaderUtils.getOptions(this);
+  const callback = this.async();
+  setTimeout(() => {
+     const result =  source.replace('dell', options.name);
+     callback(null, result, souceMap);
+  }, 1000);
+}
+如果使用多个 loader， 为了简洁路径， 可以配置 resolveLoader:
+resolveLoader: {
+  modules: ['node_modules', './loaders'] // 在使用 loader 时， 会先到 node_modules 里面找，然后再到 loaders 文件夹中找
+}
+
+
+
+
+6.2--如何编写一个 Plugin
+实现此插件的原因，是为了在生成资源到 output 目录之前，生成一个文件版权文件 copyright.txt
+class CopyRightWebpackPlugin {
+  constructor(options) {
+    // options 是在 webpack.config.js 中配置此插件时传入的内容
+    console.log(options, '这个插件被使用啦')
+  }
+  apply(compiler) {
+    // compiler 就是webpack的一个实例，里面存放了配置和打包的所有内容
+    // emit 是一个异步的时刻，代表生成资源到 output 目录之前的时刻， 所以需要使用 tapAsync
+    compiler.hooks.emit.tapAsync('CopyRightWebpackPlugin', (compilation, cb)=> {
+      // compilation 中存放的就是跟本次打包有关的内容
+      // console.log(compilation.assets, '123123');
+      compilation.assets['copyright.txt'] = {
+        source: function() {
+          return 'copyright by du'
+        },
+        size: function() {
+          return 15
+        }
+      }
+      cb();
+    })
+    // compile 是一个同步的时刻， 代表一个新的编译(compilation)创建之后，钩入(hook into) compiler， 使用方法 tap
+    compiler.hooks.compile.tap('CopyRightWebpackPlugin', (compilation)=> {
+      console.log('compile');
+    })
+  }
+}
+
+module.exports = CopyRightWebpackPlugin
+如何使用 node 比较直观的调试，比如查看compilation
+"scripts": {
+  "debug": "node --inspect --inspect-brk node_modules/webpack/bin/webpack.js",
+  "build": "webpack"
+}
+// inspect 是指要开启 node 的调试工具
+// --inspect-brk 是指在 webpack. js 文件的第一行打断点
