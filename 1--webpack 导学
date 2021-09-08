@@ -1,0 +1,14 @@
+--如何查看 webpack 文档： https://webpack.docschina.org/
+1.如果是想找解决某一方向问题答案的时候，查看 GUIDES （指南），比如做代码分割，比如对 TypeScript 进行配置；
+2.CONCEPTS (概念） 中是一些核心的概念，如 entry， output， mode， loaders， plugins
+3.CONFIGURATION (配置）中是一些详细的配置项， 如 devServer
+4.如果想写一些 loader 或者 plugin，但是忘记了怎么写，可以看API
+5.如果想了解更多的 loader 或者查看某一个 loader 的作用， 可以在 LOADER 里面查找
+6.如果想了解更多的 plugin 或者查看某一个 plugin 的作用， 可以在 PLUGIN 里面查找
+
+
+注意：
+在安装将捆绑到您的生产包中的包时，您应该使用npm install --save. 如果您正在安装用于开发目的的包（例如 linter、测试库等），那么您应该使用npm install --save-dev
+
+
+webpack就是一个模块打包工具
