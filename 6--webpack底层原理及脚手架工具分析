@@ -32,6 +32,21 @@ resolveLoader: {
   modules: ['node_modules', './loaders'] // 在使用 loader 时， 会先到 node_modules 里面找，然后再到 loaders 文件夹中找
 }
 
+在 webpack.config.js 中的配置是：
+module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [{
+          loader: path.resolve(__dirname, './loader/replaceLoader.js'),
+          options: {
+            name: 'durui'
+          }
+        }]
+      }
+    ]
+  }
+
 
 
 
@@ -164,4 +179,11 @@ const generateCode = (entry) => {
 
 const code = generateCode('./src/index.js');
 console.log(code);
+
+
+
+注：-----
+在学习完node 之后，还可以再看一遍第七章，更深入了解 create-react-app 以及 vue-cli 等脚手架中 webpack 的配置；
+所谓脚手架，可以理解成一个 node 程序, 可以帮我们初始化一个项目，包括这个项目的工程目录，以及这个项目打包的 webpack 配置
+
 
