@@ -1,7 +1,7 @@
 // 需要定义一个方法，接收入口文件，并进行分析
 const fs = require('fs');
 const path = require('path');
-const parser = require('@babel/parser'); // 代码分析，分析出抽象语法树
+const parser = require('@babel/parser'); // 代码分析，解析出抽象语法树
 const traverse = require('@babel/traverse').default; // 可以对分析出的抽象语法树进行遍历
 const babel = require('@babel/core'); // 把 es6 的语法转化成 es5
 // default 代表默认是 ES module的导出

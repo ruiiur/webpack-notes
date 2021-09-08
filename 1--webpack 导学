@@ -9,6 +9,3 @@
 
 注意：
 在安装将捆绑到您的生产包中的包时，您应该使用npm install --save. 如果您正在安装用于开发目的的包（例如 linter、测试库等），那么您应该使用npm install --save-dev
-
-
-webpack就是一个模块打包工具

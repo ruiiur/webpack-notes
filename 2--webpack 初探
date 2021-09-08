@@ -1,0 +1,59 @@
+--webpack 是什么？
+webpack就是一个模块打包工具
+
+
+--webpack 模块化引入方式
+1.ES module 模块化引入方式
+2.CommonJs 模块化引入方式
+3.AMD define 和 require 语句
+4.css/sass/less 文件中的 @import 语句
+5.stylesheet url(...) 或者 HTML <img src=...> 文件中的图片链接
+
+
+--webpack 的安装及使用
+webpack-cli 的 作用: 可以让我们在命令行中使用 webpack 或者 npx
+webpack 在打包的时候，它并不知道去如何打包，需要有配置文件告诉它该如何打包，也就是 webpack.config.js
+如果没有配置 webpack.config.js 也没有关系， webpack 会有自己默认的配置文件
+webpack.config.js 例子：
+const path = require('path');
+module.exports = {
+  mode: 'development', // 开发环境，打包后的文件没有压缩，默认是‘production’，生产环境，会压缩打包后的文件
+  entry: { // 入口文件
+    main: './index.js'
+  },
+  devtool: 'cheap-module-eval-source-map',
+  output: {
+    // [name] 对应entry里面的name，默认是main
+    filename: '[name].js',
+    // __dirname指webpack.config.js同级目录，在同级目录下增加文件夹bundle, 默认是dist
+    path: path.resolve(__dirname, 'bundle')
+  },
+  module: {
+    rules: [
+      {
+        test:/\.(png|jpe?g|gif|svg)$/,
+        use:[
+          {
+            loader: 'url-loader',
+            options: {
+              name: '[path][name].[ext]',
+              outputPath: 'images',
+              limit: 1024 // 启用或者禁用将文件转化成base64，可以是boolean，也可以是number ｜ string ，如果图片大小超过此值，则不转化成base64
+            }
+          }
+        ]
+      },
+      {
+        test:/\.css$/,
+        use:[
+          "style-loader", // 使样式挂载到style标签上
+          "css-loader", // 使webpack能打包css文件
+          "postcss-loader" // 
+        ]
+      }
+    ]
+  }
+}
+
+
+
