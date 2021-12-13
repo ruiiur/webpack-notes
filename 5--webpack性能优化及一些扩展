@@ -11,6 +11,8 @@ module.exports = {
   }
 }
 
+library 和 libraryTarget 详细说明：https://blog.csdn.net/wdz512/article/details/111032811
+
 如果业务代码中引入了一个库 jquery， 自定义库中也引入了该库 jquery，为了防止重复打包，可以在自定义库中配置：
 externals: {
    jquery: 'jQuery' // 这样配置，在其他项目中使用该自定义库时，引入 jquery 的名称，必须是 jQuery
