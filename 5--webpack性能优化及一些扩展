@@ -7,7 +7,7 @@ module.exports = {
      path: path.resolve(_dirname, 'dist'),
      filename: 'library.js',
      library: 'library', // 会在全局变量里面增加一个 library 的变量， 可以通过 script 标签引入库打包后的文件，然后通过 library 访问库里面的属性或方法
-     libraryTarget: 'mud' // 是指全局变量挂载在哪里，如果是 mud 就和 library 的配置没很大关系，就是支持 Es module 或者 CommonJs 或者 AMD 等形式的引入，如果设置成 this ，则代表 library 设置的变量挂载在了 this 上，或者可以设置成 window ， 在 node 环境中，也可以设置成 global, 但是就不能支持Es module 或者 CommonJs 或者 AMD 等形式的引入啦，因为不是 mud 啦
+     libraryTarget: 'umd' // 是指全局变量挂载在哪里，如果是 umd 就和 library 的配置没很大关系，就是支持 Es module 或者 CommonJs 或者 AMD 等形式的引入，如果设置成 this ，则代表 library 设置的变量挂载在了 this 上，或者可以设置成 window ， 在 node 环境中，也可以设置成 global, 但是就不能支持Es module 或者 CommonJs 或者 AMD 等形式的引入啦，因为不是 umd 啦
   }
 }
 
